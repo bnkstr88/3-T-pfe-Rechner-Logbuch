@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Drei-Töpfe-Logbuch</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1f5fa6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Logbuch">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: eine Spalte wie ein Arbeitsheft – oben der Status, darunter die Schritte (Einrichten, Jahres-Check, Verlauf) */
+:root {
+  --bg: #f2f5f8; --surface: #ffffff; --surface-2: #e9eef4; --ink: #142030; --muted: #566577; --line: #d6dee8;
+  --accent: #1f5fa6; --accent-ink: #ffffff;
+  --pot1: #2f6fb0; --pot2: #2c7a4d; --pot3: #c0602a;
+  --good: #2c7a4d; --warn: #a86a12; --bad: #b93a2c; --good-bg: #e3f2e9; --warn-bg: #fbf0dc; --bad-bg: #fbe5e1;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d131a; --surface: #151e28; --surface-2: #1d2834; --ink: #e5ecf3; --muted: #94a4b6; --line: #283545;
+    --accent: #6ea9ea; --accent-ink: #0d131a; --pot1: #6ea9ea; --pot2: #5dbd85; --pot3: #e58b58;
+    --good: #5dbd85; --warn: #e2b04f; --bad: #ee7b6c; --good-bg: #17301f; --warn-bg: #33270f; --bad-bg: #3a1c18;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d131a; --surface: #151e28; --surface-2: #1d2834; --ink: #e5ecf3; --muted: #94a4b6; --line: #283545;
+  --accent: #6ea9ea; --accent-ink: #0d131a; --pot1: #6ea9ea; --pot2: #5dbd85; --pot3: #e58b58;
+  --good: #5dbd85; --warn: #e2b04f; --bad: #ee7b6c; --good-bg: #17301f; --warn-bg: #33270f; --bad-bg: #3a1c18;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 56px;
+}
+.wrap { max-width: 920px; margin: 0 auto; display: grid; gap: 20px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.7rem, 3.4vw, 2.4rem); line-height: 1.1; margin: 0 0 6px; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; margin: 0; line-height: 1.2; text-wrap: balance; }
+h3 { font-size: 1rem; margin: 0; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 70ch; }
+.muted { color: var(--muted); }
+.small { font-size: 0.84rem; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 14px; min-width: 0; }
+.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 12px; }
+.step { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+
+.banner { border-radius: 10px; padding: 10px 14px; font-size: 0.9rem; font-weight: 500; }
+.banner.warn { background: var(--warn-bg); color: var(--warn); }
+.banner.info { background: var(--surface-2); color: var(--ink); }
+.banner.bad { background: var(--bad-bg); color: var(--bad); }
+
+.status { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 760px) { .status { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+.kpi .k { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+.kpi .v { font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.kpi .s { font-size: 0.82rem; color: var(--muted); }
+.pill { display: inline-block; font-weight: 700; font-size: 0.78rem; padding: 3px 9px; border-radius: 999px; letter-spacing: 0.02em; }
+.pill.good { background: var(--good-bg); color: var(--good); }
+.pill.warn { background: var(--warn-bg); color: var(--warn); }
+.pill.bad { background: var(--bad-bg); color: var(--bad); }
+
+.form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
+.form.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 640px) { .form, .form.three { grid-template-columns: minmax(0, 1fr); } }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field label { font-weight: 600; font-size: 0.92rem; }
+.field .hint { font-size: 0.8rem; color: var(--muted); }
+.field.wide { grid-column: 1 / -1; }
+input[type="number"], input[type="date"], input[type="text"] {
+  font: inherit; width: 100%; padding: 9px 11px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.inunit { position: relative; }
+.inunit input { padding-right: 34px; }
+.inunit span { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 0.9rem; pointer-events: none; }
+.pot-in input { border-left: 4px solid var(--c); }
+.check { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: start; }
+.check input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--accent); }
+.check label { font-weight: 600; }
+.check .hint { grid-column: 2; font-size: 0.8rem; color: var(--muted); }
+input:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.btns { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+button { font: inherit; cursor: pointer; }
+.btn { font-weight: 700; border: 0; border-radius: 10px; padding: 10px 16px; background: var(--accent); color: var(--accent-ink); }
+.btn.secondary { background: var(--surface-2); color: var(--ink); }
+.btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+.btn.danger { background: var(--bad-bg); color: var(--bad); }
+.btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+.saved { font-size: 0.86rem; color: var(--good); font-weight: 600; }
+
+.orders { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.order { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
+.order .tag { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; color: var(--accent-ink); white-space: nowrap; }
+.order .tag.sell { background: var(--bad); }
+.order .tag.buy { background: var(--good); }
+.order .tag.set { background: var(--accent); }
+.order .amt { font-family: var(--font-display); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.order .what { min-width: 0; }
+.order .what small { display: block; color: var(--muted); }
+@media (max-width: 520px) { .order { grid-template-columns: minmax(0, 1fr) auto; } .order .tag { grid-column: 1 / -1; justify-self: start; } }
+
+.why { display: grid; gap: 6px; margin: 0; padding-left: 18px; }
+.pots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 560px) { .pots { grid-template-columns: minmax(0, 1fr); } }
+.pot { border-radius: 12px; padding: 12px 14px; background: var(--surface-2); display: grid; gap: 2px; border-top: 4px solid var(--c); min-width: 0; }
+.pot .n { font-weight: 700; color: var(--c); font-size: 0.86rem; }
+.pot .a { font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.pot .d { font-size: 0.8rem; color: var(--muted); }
+
+.gauge { position: relative; height: 14px; border-radius: 999px; background: linear-gradient(90deg, var(--good-bg) 0 33.3%, var(--surface-2) 33.3% 66.6%, var(--bad-bg) 66.6% 100%); }
+.gauge i { position: absolute; top: -4px; width: 4px; height: 22px; border-radius: 2px; background: var(--ink); transform: translateX(-2px); }
+.gauge-l { display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font-size: 0.76rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart .gridline { stroke: var(--line); }
+.chart .axis { fill: var(--muted); font-size: 11px; font-family: var(--font-body); }
+.chart .l1 { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+.chart .l2 { fill: none; stroke: var(--pot3); stroke-width: 2; stroke-dasharray: 5 4; }
+.chart .ref { stroke: var(--muted); stroke-dasharray: 3 4; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.82rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
+details > summary { cursor: pointer; font-weight: 600; color: var(--accent); }
+.market { grid-column: 1 / -1; border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 12px; background: var(--surface-2); }
+.market .form { gap: 12px 18px; }
+.market ol { margin: 0; padding-left: 18px; display: grid; gap: 2px; font-size: 0.82rem; color: var(--muted); }
+.market input { background: var(--surface); }
+.pxnote { font-size: 0.88rem; font-weight: 600; }
+.empty { text-align: left; display: grid; gap: 10px; padding: 8px 0; }
+.demo-flag { background: var(--warn-bg); color: var(--warn); font-weight: 700; font-size: 0.78rem; padding: 3px 9px; border-radius: 999px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+.copy { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 8px 0 4px; border-top: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Drei-Töpfe-Logbuch</h1>
+    <p class="lead">Dein Begleiter für die Umsetzung: Er rechnet die Startaufteilung aus, sagt dir beim jährlichen Check genau, was du verkaufen, kaufen und am Entnahmeplan ändern sollst, und merkt sich alle Jahre.</p>
+  </header>
+
+  <div id="store-banner" class="banner info" hidden></div>
+
+  <!-- Status -->
+  <section id="status-sec" hidden>
+    <div class="panel-head" style="margin-bottom:10px">
+      <h2>Wo du gerade stehst</h2>
+      <span id="demo-flag" class="demo-flag" hidden>Beispiel – nicht gespeichert</span>
+    </div>
+    <div class="status">
+      <div class="kpi"><span class="k">Nächster Jahres-Check</span><span class="v" id="s-next"></span><span class="s" id="s-next-s"></span></div>
+      <div class="kpi"><span class="k">Monatsrate (netto)</span><span class="v" id="s-rate"></span><span class="s" id="s-rate-s"></span></div>
+      <div class="kpi"><span class="k">Topf 1 sollte jetzt etwa enthalten</span><span class="v" id="s-t1"></span><span class="s" id="s-t1-s"></span></div>
+      <div class="kpi"><span class="k">Depot beim letzten Check</span><span class="v" id="s-tot"></span><span class="s" id="s-tot-s"></span></div>
+    </div>
+  </section>
+
+  <!-- Schritt 1: Plan -->
+  <section class="panel" id="plan-sec">
+    <div class="panel-head">
+      <div><div class="step">Schritt 1</div><h2>Plan einrichten</h2></div>
+      <button type="button" class="btn ghost" id="demo-btn">Beispiel ansehen</button>
+    </div>
+    <p class="muted small" id="plan-intro">Die Felder sind mit Beispielwerten vorausgefüllt. Trag deine eigenen Zahlen ein und speichere den Plan. Danach bekommst du die Kaufaufträge für den Start.</p>
+    <div class="form">
+      <div class="field"><label for="p-date">Startdatum</label><input type="date" id="p-date"></div>
+      <div class="field"><label for="p-cap">Startkapital</label><div class="inunit"><input type="number" id="p-cap" min="10000" step="1000" value="700000"><span>€</span></div></div>
+      <div class="field"><label for="p-net">Monatsrate netto zum Start</label><div class="inunit"><input type="number" id="p-net" min="100" step="10" value="1200"><span>€</span></div>
+        <span class="hint">Vorsichtig sind 1.100–1.200 € je 700.000 €. Den Drei-Töpfe-Rechner kannst du zum Ausprobieren nutzen.</span></div>
+      <div class="field"><label>Steuer</label>
+        <span class="hint">Beim monatlichen Verkauf aus dem Geldmarkt-ETF fällt kaum Steuer an. Steuer entsteht beim Jahres-Check, wenn du Aktien aus Topf 3 verkaufst, und jedes Jahr im Januar als Vorabpauschale. Das Logbuch schätzt beides für dich: Abgeltungsteuer und Soli 26,375 %, Teilfreistellung 30 % beim Aktien-ETF, Sparerpauschbetrag 1.000 €, keine Kirchensteuer.</span></div>
+      <div class="field"><label for="p-age0">Alter beim Start</label><input type="number" id="p-age0" min="30" max="90" step="1" value="50"></div>
+      <div class="field"><label for="p-age1">Geld soll reichen bis Alter</label><input type="number" id="p-age1" min="40" max="105" step="1" value="90"></div>
+      <div class="field"><label for="p-y1">Topf 1 reicht für (Jahre)</label><input type="number" id="p-y1" min="1" max="3" step="1" value="1"></div>
+      <div class="field"><label for="p-y2">Topf 2 reicht für (Jahre)</label><input type="number" id="p-y2" min="0" max="8" step="1" value="5"></div>
+      <div class="field"><label for="p-inf">Erwartete Inflation für die Topfgrößen</label><div class="inunit"><input type="number" id="p-inf" min="0" max="6" step="0.25" value="2"><span>%</span></div>
+        <span class="hint">Nur für die Planung der Töpfe. Beim Jahres-Check trägst du die echte Inflation ein.</span></div>
+      <div class="field"><label for="p-price">Kaufkurs des Aktien-ETFs (optional)</label><div class="inunit"><input type="number" id="p-price" min="0" step="0.01" placeholder="z. B. 128,50"><span>€</span></div>
+        <span class="hint">Der Preis für <b>einen</b> Anteil beim Kauf. Steht in der Kaufabrechnung oder im Depot als „Einstandskurs“. Er dient beim ersten Jahres-Check als Ausgangswert für den Höchstkurs.</span></div>
+      <div class="field wide" style="gap:10px">
+        <label>Soll sich die Rate anpassen dürfen?</label>
+        <div class="check"><input type="radio" name="p-mode" id="p-mode-fix" checked><label for="p-mode-fix">Nein, feste Rate</label><span class="hint">Die Rate steigt jedes Jahr mit der Inflation, egal wie die Börse läuft.</span></div>
+        <div class="check"><input type="radio" name="p-mode" id="p-mode-dyn"><label for="p-mode-dyn">Ja, flexible Rate</label><span class="hint">Läuft die Börse schlecht, entnimmst du etwas weniger, läuft sie gut, etwas mehr. So wie im Drei-Töpfe-Rechner.</span></div>
+        <div class="form three" id="p-dyn" hidden style="border-left:3px solid var(--accent);padding-left:12px">
+          <div class="field"><label for="p-swing">Änderung pro Jahr höchstens</label><div class="inunit"><input type="number" id="p-swing" min="1" max="25" step="1" value="10"><span>%</span></div>
+            <span class="hint">5 = wenig, 10 = mittel, 15 = stark</span></div>
+          <div class="field"><label for="p-floor">Aber nie weniger als</label><div class="inunit"><input type="number" id="p-floor" min="40" max="100" step="5" value="75"><span>%</span></div>
+            <span class="hint" id="p-floor-h">der Startrate, in heutiger Kaufkraft</span></div>
+          <div class="field"><label for="p-dcap">Und nie mehr als (optional)</label><div class="inunit"><input type="number" id="p-dcap" min="100" max="500" step="10" placeholder="keine Grenze"><span>%</span></div>
+            <span class="hint">der Startrate. Leer lassen für keine Obergrenze.</span></div>
+        </div>
+        <div class="check"><input type="checkbox" id="p-idx" checked><label for="p-idx">Rate jedes Jahr um die Inflation erhöhen</label></div>
+        <div id="p-fixopts" style="display:grid;gap:10px">
+          <div class="check"><input type="checkbox" id="p-skip"><label for="p-skip">Nach Verlustjahren nicht erhöhen</label><span class="hint">Hat das Depot im Vorjahr verloren, bleibt die Rate gleich.</span></div>
+          <div class="check"><input type="checkbox" id="p-guard"><label for="p-guard">Leitplanken nach Guyton und Klinger</label><span class="hint">Rate −10 %, wenn der Entnahmeanteil über das 1,2-Fache des Startwerts steigt (nur bei mehr als 15 Restjahren); +10 %, wenn er unter das 0,8-Fache fällt.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="btns">
+      <button type="button" class="btn" id="plan-save">Plan speichern</button>
+      <span class="saved" id="plan-msg" aria-live="polite"></span>
+    </div>
+
+    <div id="start-orders" hidden style="display:grid;gap:12px">
+      <h3>So setzt du den Plan zum Start um</h3>
+      <div class="pots" id="start-pots"></div>
+      <ul class="orders" id="start-list"></ul>
+    </div>
+  </section>
+
+  <!-- Schritt 2: Jahres-Check -->
+  <section class="panel" id="check-sec" hidden>
+    <div><div class="step">Schritt 2 · einmal im Jahr</div><h2>Jahres-Check durchführen</h2></div>
+    <p class="muted small">Schau in dein Depot und trag die heutigen Werte ein. Der Vorschlag darunter rechnet sich sofort neu. Gespeichert wird erst, wenn du auf „Check speichern“ tippst.</p>
+    <div class="form three">
+      <div class="field"><label for="c-date">Datum des Checks</label><input type="date" id="c-date"></div>
+      <div class="field"><label for="c-inf">Inflation im letzten Jahr</label><div class="inunit"><input type="number" id="c-inf" step="0.1" value="2"><span>%</span></div>
+        <span class="hint">Verbraucherpreisindex laut Statistischem Bundesamt.</span></div>
+      <div class="field"><label for="c-wd">Seit dem letzten Check entnommen</label><div class="inunit"><input type="number" id="c-wd" min="0" step="100"><span>€</span></div>
+        <span class="hint">Vorausgefüllt mit den geplanten Raten.</span></div>
+      <div class="field pot-in" style="--c:var(--pot1)"><label for="c-t1">Wert Topf 1 heute</label><div class="inunit"><input type="number" id="c-t1" min="0" step="100"><span>€</span></div><span class="hint">Geldmarkt-ETF</span></div>
+      <div class="field pot-in" style="--c:var(--pot2)"><label for="c-t2">Wert Topf 2 heute</label><div class="inunit"><input type="number" id="c-t2" min="0" step="100"><span>€</span></div><span class="hint">alle Anleihen-ETFs zusammen</span></div>
+      <div class="field pot-in" style="--c:var(--pot3)"><label for="c-t3">Wert Topf 3 heute</label><div class="inunit"><input type="number" id="c-t3" min="0" step="100"><span>€</span></div><span class="hint">Welt-Aktien-ETF</span></div>
+      <div class="field"><label for="c-gain">Gewinn des Aktien-ETFs laut Depot</label><div class="inunit"><input type="number" id="c-gain" min="0" max="95" step="1" placeholder="30"><span>%</span></div>
+        <span class="hint">Steht im Depot beim ETF als Gewinn oder „+ … %“. Leer lassen: Das Logbuch rechnet mit 30 %. Nur für die Schätzung der Steuer beim Verkauf.</span></div>
+      <div class="field"><label for="c-bz">Basiszins für die Vorabpauschale</label><div class="inunit"><input type="number" id="c-bz" min="0" max="10" step="0.01" value="3.2"><span>%</span></div>
+        <span class="hint">Veröffentlicht das Bundesfinanzministerium jedes Jahr im Januar; 2026 sind es 3,2 %.</span></div>
+      <div class="market">
+        <div>
+          <h3>Wie steht die Börse gerade?</h3>
+          <p class="small muted" style="margin-top:4px">Mit diesen beiden Zahlen erkennt das Logbuch, ob gerade ein normales Jahr oder ein Krisenjahr ist. Liegt der heutige Kurs mehr als 10 % unter dem höchsten Kurs seit deinem Start, ist Krise: Dann wird Topf 1 aus Topf 2 aufgefüllt und die Aktien bleiben unangetastet. Gemeint ist immer der Preis für <b>einen Anteil</b> deines Welt-Aktien-ETFs, nicht der Gesamtwert deiner Aktien.</p>
+        </div>
+        <div class="form">
+          <div class="field"><label for="c-px">Kurs heute (Preis für einen Anteil)</label><div class="inunit"><input type="number" id="c-px" min="0" step="0.01" placeholder="z. B. 132,40"><span>€</span></div>
+            <ol>
+              <li>Öffne dein Depot und tippe auf den Welt-Aktien-ETF (z. B. Vanguard FTSE All-World, WKN A2PKXG).</li>
+              <li>Dort steht der aktuelle Kurs, meist als „Kurs“ oder „Aktueller Preis“, z. B. 132,40 €.</li>
+              <li>Diesen Wert eintragen. Ein Kurs von einem der letzten Tage reicht.</li>
+            </ol></div>
+          <div class="field"><label for="c-hi">Höchster Kurs seit deinem Start</label><div class="inunit"><input type="number" id="c-hi" min="0" step="0.01"><span>€</span></div>
+            <ol>
+              <li>Das Feld ist schon ausgefüllt: mit dem höchsten Kurs, den du bisher eingetragen hast (beim ersten Check mit deinem Kaufkurs).</li>
+              <li>Öffne beim ETF das Kursdiagramm und stell den Zeitraum so ein, dass er seit deinem Start reicht („5 Jahre“ oder „Max“).</li>
+              <li>War der Kurs zwischendurch höher als der Wert im Feld, trag den höchsten Punkt ein. Sonst lass das Feld, wie es ist.</li>
+            </ol></div>
+        </div>
+        <p class="pxnote" id="px-note" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <div id="rec" style="display:grid;gap:14px"></div>
+
+    <div class="btns">
+      <button type="button" class="btn" id="check-save">Check speichern</button>
+      <span class="saved" id="check-msg" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <!-- Schritt 3: Verlauf -->
+  <section class="panel" id="hist-sec" hidden>
+    <div><div class="step">Verlauf</div><h2>Alle Jahre im Überblick</h2></div>
+    <div class="chart" id="hist-chart"></div>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--accent)"></i>Depot nach dem Umschichten (in heutiger Kaufkraft)</span>
+      <span><i class="sw" style="background:var(--pot3)"></i>Depot auf dem Kontoauszug</span><span><i class="sw" style="background:var(--muted)"></i>Startkapital</span>
+    </div>
+    <div class="tablewrap"><table id="hist-table"></table></div>
+    <div class="btns">
+      <button type="button" class="btn secondary" id="undo-btn">Letzten Check löschen</button>
+      <button type="button" class="btn danger" id="undo-confirm" hidden>Wirklich löschen</button>
+      <button type="button" class="btn secondary" id="export-btn">Sicherung herunterladen</button>
+      <label class="btn secondary" for="import-file" style="display:inline-block">Sicherung laden</label>
+      <input type="file" id="import-file" accept="application/json,.json" hidden>
+      <span class="saved" id="hist-msg" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <section class="panel" id="about-sec">
+    <details>
+      <summary>So arbeitet das Logbuch</summary>
+      <div style="display:grid;gap:8px;margin-top:10px" class="small">
+        <p><strong>Jeden Monat:</strong> Ein Entnahmeplan beim Broker verkauft Anteile des Geldmarkt-ETFs (Topf 1) in Höhe der Brutto-Rate. Mehr ist nicht zu tun.</p>
+        <p><strong>Einmal im Jahr:</strong> Du trägst die Werte deiner Töpfe, den Kurs des Aktien-ETFs und die Inflation ein. Das Logbuch berechnet die neue Rate (fest oder flexibel, je nach Plan) und sagt dir, woraus du Topf 1 wieder auffüllst. Steht der Aktien-ETF höchstens 10 % unter seinem Höchstkurs, kommt das Geld aus Topf 3, und Topf 2 wird ebenfalls aufgefüllt. Steht er tiefer, kommt es aus Topf 2, und die Aktien bleiben unangetastet.</p>
+        <p><strong>Steuer:</strong> Beim monatlichen Verkauf aus dem Geldmarkt-ETF fällt kaum Steuer an, der Entnahmeplan ist also etwa so hoch wie deine Netto-Rate. Steuer entsteht beim Jahres-Check, wenn Aktien aus Topf 3 verkauft werden: Das Logbuch rechnet sie in den Verkaufsauftrag ein, geschätzt mit dem Gewinn laut Depot. Dazu kommt jedes Jahr im Januar die Vorabpauschale, die die Bank vom Verrechnungskonto abbucht; das Logbuch sagt dir, wie viel du dort lassen solltest. Gerechnet wird mit 26,375 % Abgeltungsteuer und Soli, 30 % Teilfreistellung beim Aktien-ETF und 1.000 € Sparerpauschbetrag, ohne Kirchensteuer. Die Bank rechnet genau; die Werte hier sind Schätzungen.</p>
+        <p><strong>Was nicht berechnet wird:</strong> Steuer beim Verkauf von Anleihen in Krisenjahren (meist wenig Gewinn). Innerhalb von Topf 2 hältst du die Mischung aus Staats- und Unternehmensanleihen selbst ungefähr ein.</p>
+        <p><strong>Deine Daten:</strong> Plan und Checks werden in deinem privaten Bereich dieser Seite gespeichert. Andere Personen, mit denen die Seite geteilt wird, sehen sie nicht. Mit „Sicherung herunterladen“ bekommst du zusätzlich eine Datei für dich.</p>
+        <p>Keine Anlageberatung. Die Vorschläge folgen den Regeln aus dem Drei-Töpfe-Plan.</p>
+      </div>
+    </details>
+  </section>
+  <footer class="copy">© 2026 Christopher Tremmel. Alle Rechte vorbehalten. · Keine Anlageberatung.</footer>
+</div>
+
+<script>
+/* ===================== LOGIK ===================== */
+const DAY = 86400000;
+function geo(g, from, to) { let s = 0; for (let k = from; k < to; k++) s += Math.pow(g, k); return s; }
+function yearsBetween(a, b) { return (new Date(b) - new Date(a)) / (365.25 * DAY); }
+function addYears(iso, n) { const d = new Date(iso + "T12:00:00"); d.setFullYear(d.getFullYear() + n); return d.toISOString().slice(0, 10); }
+
+// Steuer: feste Annahmen wie im Drei-Töpfe-Rechner
+const TAXR = 0.26375, TF_EQ = 0.3, FREI = 1000;
+// Ältere Pläne rechneten mit einem pauschalen Steueranteil auf die Entnahme (plan.tax). Ihre Startaufteilung bleibt so,
+// wie sie damals gekauft wurde; ab dem nächsten Jahres-Check gilt die neue Rechnung (Entnahmeplan ≈ Netto-Rate).
+function startAllocation(plan) {
+  const keep = plan.tax ? 1 - plan.tax : 1, gross = plan.net / keep, W = gross * 12;
+  const g = plan.indexed ? 1 + plan.inf : 1, L = plan.age1 - plan.age0;
+  const t1 = Math.min(plan.cap, W * geo(g, 0, Math.min(plan.y1, L)));
+  const t2 = Math.min(plan.cap - t1, W * geo(g, Math.min(plan.y1, L), Math.min(plan.y1 + plan.y2, L)));
+  return { t1, t2, t3: plan.cap - t1 - t2, gross, W, iwr: plan.net * 12 / plan.cap };
+}
+
+// Zustand nach dem letzten Eintrag (Start oder Check)
+function lastState(doc) {
+  const plan = doc.plan, a = startAllocation(plan);
+  if (!doc.checks.length) return { date: plan.date, t1: a.t1, t2: a.t2, t3: a.t3, net: plan.net, hi: plan.price || 0, cpi: 1, total: plan.cap };
+  const c = doc.checks[doc.checks.length - 1];
+  return { date: c.date, t1: c.after.t1, t2: c.after.t2, t3: c.after.t3, net: c.newNet, hi: c.hi, cpi: c.cpi, total: c.after.t1 + c.after.t2 + c.after.t3 };
+}
+
+function planGross(doc) { return doc.checks.length ? doc.checks[doc.checks.length - 1].gross : startAllocation(doc.plan).gross; }
+// Vorabpauschale für das kommende Jahr grob schätzen: Basisertrag = Wert × Basiszins × 0,7, beim Aktien-ETF 30 % steuerfrei
+function vpEstimate(t1, t2, t3, bz) {
+  const taxable = (t1 + t2) * bz * 0.7 + t3 * bz * 0.7 * (1 - TF_EQ);
+  return { taxable, tax: TAXR * Math.max(0, taxable - FREI) };
+}
+function computeCheck(doc, inp) {
+  const plan = doc.plan, prev = lastState(doc);
+  const iwr = startAllocation(plan).iwr;
+  const t1 = inp.t1, t2 = inp.t2, t3 = inp.t3, total = t1 + t2 + t3;
+  const age = plan.age0 + yearsBetween(plan.date, inp.date);
+  const left = Math.max(0, Math.round(plan.age1 - age));
+  const portRet = prev.total > 0 ? (total + inp.withdrawn) / prev.total - 1 : 0;
+  const loss = portRet < 0;
+  const why = [];
+  let net = prev.net;
+  const cpiNow = prev.cpi * (1 + inp.inf);
+  if (plan.mode === "dyn") {
+    const g = plan.indexed ? 1 + inp.inf : 1, D = plan.indexed ? cpiNow : 1;
+    const target = iwr * total / 12;
+    const lo = prev.net * g * (1 - plan.swing), hiR = prev.net * g * (1 + plan.swing);
+    let nb = Math.min(Math.max(target, lo), hiR);
+    why.push(`Flexible Rate: Mit deinem heutigen Depot von ${eurR(total)} ergäbe derselbe Anteil wie zum Start (${fmtPct2(iwr)} pro Jahr) eine Rate von ${eur10(target)} netto.`);
+    if (target > hiR + 0.5) why.push(`Pro Jahr darf die Rate aber höchstens um ${Math.round(plan.swing * 100)} %${plan.indexed ? " plus Inflation" : ""} steigen, also auf ${eur10(hiR)}.`);
+    else if (target < lo - 0.5) why.push(`Pro Jahr darf die Rate aber höchstens um ${Math.round(plan.swing * 100)} %${plan.indexed ? " (nach Inflationsausgleich)" : ""} sinken, also auf ${eur10(lo)}.`);
+    const floorN = plan.net * plan.dfloor * D, capN = plan.dcap ? plan.net * plan.dcap * D : Infinity;
+    if (nb < floorN) { nb = floorN; why.push(`Deine Untergrenze liegt bei ${eur10(floorN)} (${Math.round(plan.dfloor * 100)} % der Startrate${plan.indexed ? ", mit Inflation hochgerechnet" : ""}). Tiefer geht die Rate nicht.`); }
+    if (nb > capN) { nb = capN; why.push(`Deine Obergrenze liegt bei ${eur10(capN)}. Höher geht die Rate nicht.`); }
+    net = nb;
+  } else if (plan.indexed) {
+    if (plan.skipLoss && loss) why.push(`Das Depot hat im letzten Jahr etwa ${fmtPct(portRet)} verloren. Deshalb bleibt die Rate ohne Inflationsausgleich.`);
+    else { net *= 1 + inp.inf; why.push(`Die Rate steigt um die Inflation von ${fmtPct(inp.inf)}.`); }
+  } else why.push("Die Rate bleibt gleich (kein Inflationsausgleich im Plan).");
+  let guardNote = null;
+  const cwrBefore = net * 12 / total;
+  if (plan.guard && total > 0) {
+    if (cwrBefore > 1.2 * iwr && left > 15) { net *= 0.9; guardNote = "cut"; why.push(`Leitplanke: Du würdest ${fmtPct2(cwrBefore)} des Depots entnehmen, mehr als das 1,2-Fache des Startwerts (${fmtPct2(1.2 * iwr)}). Die Rate sinkt deshalb um 10 %.`); }
+    else if (cwrBefore < 0.8 * iwr) { net *= 1.1; guardNote = "raise"; why.push(`Leitplanke: Du würdest nur ${fmtPct2(cwrBefore)} des Depots entnehmen, weniger als das 0,8-Fache des Startwerts (${fmtPct2(0.8 * iwr)}). Die Rate steigt deshalb um 10 %.`); }
+  }
+  // Der Entnahmeplan verkauft Geldmarkt-ETF: kaum Gewinn darin, also brutto ≈ netto
+  const gross = net, W = net * 12;
+  const hi = Math.max(isFinite(inp.hi) ? inp.hi : 0, isFinite(inp.px) ? inp.px : 0);
+  const drawdown = hi > 0 ? 1 - inp.px / hi : 0;
+  const good = drawdown <= 0.10;
+  const g = plan.indexed ? 1 + plan.inf : 1;
+  const tg1 = W * geo(g, 0, Math.min(plan.y1, left));
+  const tg2 = W * geo(g, Math.min(plan.y1, left), Math.min(plan.y1 + plan.y2, left));
+  let a1 = t1, a2 = t2, a3 = t3;
+  const mv = { s3to1: 0, s2to1: 0, s3to2: 0, s2to3: 0, s1to3: 0 };
+  let emergency = false;
+  let gap1 = tg1 - a1;
+  if (good) {
+    if (gap1 > 0) { let m = Math.min(gap1, a3); a3 -= m; a1 += m; mv.s3to1 = m; gap1 -= m; if (gap1 > 0) { m = Math.min(gap1, a2); a2 -= m; a1 += m; mv.s2to1 = m; } }
+    else if (gap1 < 0) { mv.s1to3 = -gap1; a1 += gap1; a3 -= gap1; }
+    const gap2 = tg2 - a2;
+    if (gap2 > 0) { const m = Math.min(gap2, a3); a3 -= m; a2 += m; mv.s3to2 = m; }
+    else if (gap2 < 0) { mv.s2to3 = -gap2; a2 += gap2; a3 -= gap2; }
+    why.push(`Der Aktien-ETF steht ${drawdown > 0.0005 ? fmtPct(drawdown) + " unter" : "auf"} seinem Höchstkurs, also höchstens 10 % darunter. Die Töpfe werden aus Topf 3 aufgefüllt.`);
+  } else {
+    if (gap1 > 0) { let m = Math.min(gap1, a2); a2 -= m; a1 += m; mv.s2to1 = m; gap1 -= m; if (gap1 > 0) { emergency = true; m = Math.min(gap1, a3); a3 -= m; a1 += m; mv.s3to1 = m; } }
+    why.push(`Der Aktien-ETF steht ${fmtPct(drawdown)} unter seinem Höchstkurs, also mehr als 10 %. Topf 1 wird aus Topf 2 aufgefüllt, die Aktien bleiben unangetastet.`);
+    if (emergency) why.push("Topf 2 reicht nicht mehr aus. Der Rest muss ausnahmsweise aus Topf 3 kommen, obwohl die Kurse niedrig stehen. Überlege, die Rate zu senken.");
+  }
+  // Steuer beim Verkauf aus Topf 3: der Verkauf muss so viel größer sein, dass nach Steuer genug ankommt
+  const gain = isFinite(inp.gain) && inp.gain >= 0 ? Math.min(inp.gain, 0.95) : 0.3, bz = isFinite(inp.bz) && inp.bz >= 0 ? inp.bz : 0.032;
+  const vp = vpEstimate(a1, a2, a3, bz), allow = Math.max(0, FREI - vp.taxable);
+  const need3 = mv.s3to1 + mv.s3to2, q = TAXR * (1 - TF_EQ) * gain;
+  let sell3 = need3;
+  if (need3 > 0 && need3 * (1 - TF_EQ) * gain > allow) sell3 = Math.min(t3, (need3 - TAXR * allow) / (1 - q));
+  const tax3 = Math.max(0, sell3 - need3);
+  a3 -= tax3;
+  if (tax3 > 0) why.push(`Beim Verkauf aus Topf 3 behält die Bank etwa ${eurR(tax3)} Steuer ein (geschätzt mit ${Math.round(gain * 100)} % Kursgewinn im Aktien-ETF). Deshalb wird etwas mehr verkauft, als die Töpfe brauchen.`);
+  const cpi = cpiNow;
+  return { sell3, tax3, gainUsed: gain, bz, vpTax: vp.tax, date: inp.date, inputs: { t1, t2, t3, px: inp.px, inf: inp.inf, withdrawn: inp.withdrawn }, hi, drawdown, good, emergency,
+    portRet, loss, guardNote, prevNet: prev.net, newNet: net, gross, left, age, targets: { tg1, tg2 }, moves: mv,
+    after: { t1: a1, t2: a2, t3: a3 }, cpi, cwr: W / (a1 + a2 + a3), iwr, why };
+}
+/* ===================== ENDE LOGIK ===================== */
+
+const $ = id => document.getElementById(id);
+const nf0 = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 });
+const nf1 = new Intl.NumberFormat("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const nf2 = new Intl.NumberFormat("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const eur = v => nf0.format(Math.round(v)) + " €";
+const eurR = v => nf0.format(Math.round(v / 100) * 100) + " €";
+const eur10 = v => nf0.format(Math.round(v / 10) * 10) + " €";
+function fmtPct(x) { return nf1.format(Math.abs(x) * 100) + " %"; }
+function fmtPct2(x) { return nf2.format(Math.abs(x) * 100) + " %"; }
+const fmtDate = iso => new Date(iso + "T12:00:00").toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" });
+const today = () => new Date().toISOString().slice(0, 10);
+
+/* ---------- Speicher ---------- */
+let db = null, docRef = null, mode = "none", state = null, demo = false, saving = false, unsub = null;
+const LS = "drei-toepfe-logbuch";
+function lsGet() { try { const s = localStorage.getItem(LS); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+function lsSet(v) { try { localStorage.setItem(LS, JSON.stringify(v)); return true; } catch (e) { return false; } }
+
+async function persist(next) {
+  if (demo) return false;
+  if (saving) return false;
+  saving = true;
+  try {
+    next.updatedAt = new Date().toISOString();
+    if (mode === "db") {
+      try { await docRef.set(next); }
+      catch (e) {
+        if (e && e.code === "unavailable") { await new Promise(r => setTimeout(r, 400 + Math.random() * 600)); await docRef.set(next); }
+        else throw e;
+      }
+    } else if (!lsSet(next)) throw new Error("local");
+    state = next; render();
+    return true;
+  } catch (e) {
+    showBanner("bad", e && e.code === "quota_exceeded" ? "Der Speicher ist voll. Bitte lade eine Sicherung herunter." : "Speichern hat nicht geklappt. Bitte versuch es gleich noch einmal.");
+    return false;
+  } finally { saving = false; }
+}
+function showBanner(kind, text) { const b = $("store-banner"); b.className = "banner " + kind; b.textContent = text; b.hidden = !text; }
+
+/* ---------- Plan-Formular ---------- */
+const P_FIELDS = ["date", "cap", "net", "age0", "age1", "y1", "y2", "corp", "inf"];
+function readPlan() {
+  const n = id => parseFloat($("p-" + id).value);
+  return {
+    date: $("p-date").value || today(), cap: n("cap"), net: n("net"), age0: n("age0"), age1: n("age1"),
+    y1: Math.round(n("y1")), y2: Math.round(n("y2")), corp: 0.4, inf: n("inf") / 100,
+    mode: $("p-mode-dyn").checked ? "dyn" : "fix",
+    swing: (n("swing") || 10) / 100, dfloor: (n("floor") || 75) / 100, dcap: n("dcap") > 0 ? n("dcap") / 100 : null,
+    indexed: $("p-idx").checked, skipLoss: !$("p-mode-dyn").checked && $("p-skip").checked, guard: !$("p-mode-dyn").checked && $("p-guard").checked,
+    price: parseFloat($("p-price").value) > 0 ? parseFloat($("p-price").value) : null,
+  };
+}
+function planErrors(p) {
+  const e = [];
+  if (!(p.cap >= 10000)) e.push("Startkapital fehlt oder ist zu klein.");
+  if (!(p.net > 0)) e.push("Monatsrate fehlt.");
+  if (!(p.age1 > p.age0)) e.push("Das Endalter muss über dem Startalter liegen.");
+  if (!(p.y1 >= 1)) e.push("Topf 1 sollte mindestens 1 Jahr reichen.");
+  if (!(p.y2 >= 0)) e.push("Topf 2 kann nicht negativ sein.");
+  const a = startAllocation(p);
+  if (a.t3 < 0 || a.t1 + a.t2 >= p.cap) e.push("Die Rate ist zu hoch für das Kapital: Topf 1 und 2 würden schon alles aufbrauchen.");
+  return e;
+}
+function syncMode() {
+  const dyn = $("p-mode-dyn").checked;
+  $("p-dyn").hidden = !dyn; $("p-fixopts").style.display = dyn ? "none" : "grid";
+  const net = parseFloat($("p-net").value) || 0, fl = parseFloat($("p-floor").value) || 0;
+  $("p-floor-h").textContent = `der Startrate, also ${eur10(net * fl / 100)} in heutiger Kaufkraft`;
+}
+function fillPlanForm(p) {
+  $("p-date").value = p.date; $("p-cap").value = p.cap; $("p-net").value = p.net;
+  $("p-age0").value = p.age0; $("p-age1").value = p.age1; $("p-y1").value = p.y1; $("p-y2").value = p.y2;
+  $("p-inf").value = +(p.inf * 100).toFixed(2);
+  $("p-idx").checked = p.indexed; $("p-skip").checked = !!p.skipLoss; $("p-guard").checked = !!p.guard;
+  $("p-mode-dyn").checked = p.mode === "dyn"; $("p-mode-fix").checked = p.mode !== "dyn";
+  $("p-swing").value = Math.round((p.swing || 0.1) * 100); $("p-floor").value = Math.round((p.dfloor || 0.75) * 100);
+  $("p-dcap").value = p.dcap ? Math.round(p.dcap * 100) : "";
+  syncMode();
+  $("p-price").value = p.price ? p.price : "";
+}
+
+function orderLi(kind, what, sub, amt) {
+  const tag = { sell: "Verkaufen", buy: "Kaufen", set: "Einstellen" }[kind];
+  return `<li class="order"><span class="tag ${kind}">${tag}</span><span class="what">${what}${sub ? `<small>${sub}</small>` : ""}</span><span class="amt">${amt}</span></li>`;
+}
+function renderStart(plan) {
+  const a = startAllocation(plan);
+  const corp = plan.corp ?? 0.4, gov = 1 - corp;
+  $("start-pots").innerHTML = [
+    ["var(--pot1)", "Topf 1 · Geldmarkt-ETF", a.t1, `${plan.y1} ${plan.y1 === 1 ? "Jahr" : "Jahre"} Entnahmen`],
+    ["var(--pot2)", "Topf 2 · Anleihen-Mix", a.t2, plan.y2 ? `${plan.y2} Jahre Krisenvorrat` : "nicht genutzt"],
+    ["var(--pot3)", "Topf 3 · Welt-Aktien-ETF", a.t3, "der Rest"],
+  ].map(([c, n, v, d]) => `<div class="pot" style="--c:${c}"><span class="n">${n}</span><span class="a">${eurR(v)}</span><span class="d">${d} · ${Math.round(v / plan.cap * 100)} %</span></div>`).join("");
+  let h = orderLi("buy", "Geldmarkt-ETF (Topf 1)", "z. B. Xtrackers II EUR Overnight Rate Swap, WKN DBX0AN", eurR(a.t1));
+  if (a.t2 > 0) {
+    if (gov > 0) h += orderLi("buy", "Euro-Staatsanleihen-ETF (Topf 2)", "breit gestreut, gute Bonität", eurR(a.t2 * gov));
+    if (corp > 0) h += orderLi("buy", "Euro-Unternehmensanleihen-ETF (Topf 2)", "Investment Grade, keine Hybrid- oder Hochzinsanleihen", eurR(a.t2 * corp));
+  }
+  h += orderLi("buy", "Welt-Aktien-ETF (Topf 3)", "z. B. Vanguard FTSE All-World, WKN A2PKXG. Den Kaufkurs pro Anteil danach oben im Plan eintragen.", eurR(a.t3));
+  h += orderLi("set", "Entnahmeplan auf den Geldmarkt-ETF", a.gross > plan.net + 1 ? `monatlich, ergibt nach Steuern etwa ${eur(plan.net)}` : "monatlich; beim Geldmarkt-ETF fällt kaum Steuer an, brutto ist also etwa netto", eur10(a.gross) + " / Monat");
+  h += orderLi("set", "Freistellungsauftrag beim Depot", "1.000 € pro Person, 2.000 € für Ehepaare", "");
+  $("start-list").innerHTML = h;
+  $("start-orders").hidden = false;
+}
+
+/* ---------- Jahres-Check ---------- */
+function readCheck() {
+  const n = id => { const v = parseFloat($("c-" + id).value); return isFinite(v) ? v : NaN; };
+  return { date: $("c-date").value || today(), inf: n("inf") / 100, withdrawn: n("wd") || 0, t1: n("t1"), t2: n("t2"), t3: n("t3"), px: n("px"), hi: n("hi"), gain: n("gain") / 100, bz: n("bz") / 100 };
+}
+function checkErrors(c, doc) {
+  const e = [];
+  ["t1", "t2", "t3"].forEach((k, i) => { if (!(c[k] >= 0)) e.push(`Wert von Topf ${i + 1} eintragen.`); });
+  if (!(c.px > 0)) e.push("Kurs des Aktien-ETFs eintragen.");
+  if (!isFinite(c.inf)) e.push("Inflation eintragen.");
+  const prev = lastState(doc);
+  if (new Date(c.date) <= new Date(prev.date)) e.push("Das Datum muss nach dem letzten Eintrag liegen.");
+  return e;
+}
+function prefillCheck() {
+  if (!state || !state.plan) return;
+  const prev = lastState(state);
+  const months = Math.max(0, Math.round(yearsBetween(prev.date, today()) * 12));
+  const gross = planGross(state);
+  $("c-date").value = today();
+  $("c-wd").value = Math.round(gross * Math.min(months || 12, 24) / 10) * 10;
+  $("c-inf").value = +(state.plan.inf * 100).toFixed(1);
+  $("c-hi").value = prev.hi ? +prev.hi.toFixed(2) : "";
+  ["t1", "t2", "t3", "px", "gain"].forEach(k => $("c-" + k).value = "");
+  const lc = state.checks[state.checks.length - 1]; $("c-bz").value = lc && isFinite(lc.bz) ? +(lc.bz * 100).toFixed(2) : 3.2;
+}
+function renderPxNote() {
+  const el = $("px-note"); if (!el) return;
+  const px = parseFloat($("c-px").value), hiIn = parseFloat($("c-hi").value);
+  if (!(px > 0)) { el.textContent = ""; el.style.color = ""; return; }
+  if (px > 2000) { el.style.color = "var(--warn)"; el.textContent = "Dieser Wert ist sehr hoch für einen einzelnen Anteil. Hast du vielleicht den Gesamtwert eingetragen? Gemeint ist der Preis für einen Anteil."; return; }
+  const hi = Math.max(px, hiIn > 0 ? hiIn : 0), dd = 1 - px / hi;
+  if (!(hiIn > 0)) { el.style.color = "var(--muted)"; el.textContent = "Ohne Höchstkurs zählt der heutige Kurs als Höchstkurs, das Jahr also als normal."; return; }
+  if (px > hiIn) { el.style.color = "var(--good)"; el.textContent = `Der heutige Kurs ist ein neuer Höchststand. Normales Jahr. Gespeichert wird ${nf2.format(px)} € als neuer Höchstkurs.`; return; }
+  const ok = dd <= 0.10;
+  el.style.color = ok ? "var(--good)" : "var(--warn)";
+  el.textContent = `Der Kurs liegt ${fmtPct(dd)} unter dem Höchstkurs. ` + (ok ? "Das sind höchstens 10 %, also ein normales Jahr." : "Das sind mehr als 10 %, also ein Krisenjahr.") + ` Die Grenze liegt bei ${nf2.format(hiIn * 0.9)} €.`;
+}
+function renderRec() {
+  renderPxNote();
+  const box = $("rec");
+  if (!state || !state.plan) { box.innerHTML = ""; return; }
+  const c = readCheck(), errs = checkErrors(c, state);
+  $("check-save").disabled = errs.length > 0 || demo;
+  if (errs.length) { box.innerHTML = `<div class="banner info">Sobald alles eingetragen ist, erscheint hier der Vorschlag. Noch offen: ${errs.join(" ")}</div>`; return; }
+  const r = computeCheck(state, c), plan = state.plan;
+  const lines = [];
+  const m = r.moves, corp = plan.corp ?? 0.4;
+  const sellTo = (amt, from, to, sub) => { if (amt < 50) return; lines.push(orderLi("sell", from, sub, eurR(amt))); lines.push(orderLi("buy", to, "", eurR(amt))); };
+  // Verkauf aus Topf 3 einschließlich Steuer; gekauft wird nur, was nach Steuer ankommt
+  const k3 = (m.s3to1 + m.s3to2) > 0 ? r.sell3 / (m.s3to1 + m.s3to2) : 1;
+  if (m.s3to1 >= 50) { lines.push(orderLi("sell", "Welt-Aktien-ETF (Topf 3)", "für die Entnahmen der nächsten 12 Monate" + (r.tax3 * m.s3to1 / (m.s3to1 + m.s3to2) >= 50 ? `, darin etwa ${eurR(r.tax3 * m.s3to1 / (m.s3to1 + m.s3to2))} Steuer` : ""), eurR(m.s3to1 * k3))); lines.push(orderLi("buy", "Geldmarkt-ETF (Topf 1)", "", eurR(m.s3to1))); }
+  if (m.s2to1 >= 50) sellTo(m.s2to1, "Anleihen aus Topf 2", "Geldmarkt-ETF (Topf 1)", corp > 0 ? `etwa ${Math.round((1 - corp) * 100)} % Staats- und ${Math.round(corp * 100)} % Unternehmensanleihen verkaufen` : "");
+  if (m.s3to2 >= 50) { lines.push(orderLi("sell", "Welt-Aktien-ETF (Topf 3)", "zum Auffüllen des Krisenvorrats" + (r.tax3 * m.s3to2 / (m.s3to1 + m.s3to2) >= 50 ? `, darin etwa ${eurR(r.tax3 * m.s3to2 / (m.s3to1 + m.s3to2))} Steuer` : ""), eurR(m.s3to2 * k3)));
+    if (m.s3to2 * (1 - corp) >= 50) lines.push(orderLi("buy", "Euro-Staatsanleihen-ETF (Topf 2)", "", eurR(m.s3to2 * (1 - corp))));
+    if (m.s3to2 * corp >= 50) lines.push(orderLi("buy", "Euro-Unternehmensanleihen-ETF (Topf 2)", "", eurR(m.s3to2 * corp))); }
+  if (m.s2to3 >= 50) sellTo(m.s2to3, "Anleihen aus Topf 2", "Welt-Aktien-ETF (Topf 3)", "Topf 2 ist größer als nötig");
+  if (m.s1to3 >= 50) sellTo(m.s1to3, "Geldmarkt-ETF (Topf 1)", "Welt-Aktien-ETF (Topf 3)", "Topf 1 ist größer als nötig");
+  lines.push(orderLi("set", "Entnahmeplan auf den Geldmarkt-ETF ändern", `neue Rate: ${eur10(r.newNet)} netto (vorher ${eur10(r.prevNet)}); beim Geldmarkt-ETF fällt kaum Steuer an`, eur10(r.gross) + " / Monat"));
+  if (r.vpTax >= 10) lines.push(orderLi("set", "Für die Vorabpauschale auf dem Verrechnungskonto lassen", `bis Januar, die Bank bucht die Steuer dort ab. Geschätzt mit dem Basiszins ${nf2.format(r.bz * 100)} % für ein Jahr mit Kursgewinn; fallen die Kurse, wird es weniger`, "höchstens " + eurR(r.vpTax)));
+
+  const status = r.emergency ? ["bad", "Notfall: Topf 2 ist leer"] : r.good ? ["good", "Normales Jahr"] : ["warn", "Krisenjahr"];
+  const g = plan.guard ? gaugeHtml(r.cwr, r.iwr) : "";
+  box.innerHTML = `
+    <div class="panel-head"><h3>Das ist jetzt zu tun</h3><span class="pill ${status[0]}">${status[1]}</span></div>
+    <ul class="orders">${lines.join("")}</ul>
+    <div class="pots">
+      ${[["var(--pot1)", "Topf 1 danach", r.after.t1, "Ziel " + eurR(r.targets.tg1)], ["var(--pot2)", "Topf 2 danach", r.after.t2, "Ziel " + eurR(r.targets.tg2)], ["var(--pot3)", "Topf 3 danach", r.after.t3, "der Rest"]]
+        .map(([c, n, v, d]) => `<div class="pot" style="--c:${c}"><span class="n">${n}</span><span class="a">${eurR(v)}</span><span class="d">${d}</span></div>`).join("")}
+    </div>
+    <div><h3 style="margin-bottom:6px">Warum?</h3><ul class="why small">${r.why.map(w => `<li>${w}</li>`).join("")}
+      <li>Noch etwa ${r.left} Jahre bis zum Endalter ${plan.age1}.</li></ul></div>
+    ${g}`;
+}
+function gaugeHtml(cwr, iwr) {
+  const lo = 0.6 * iwr, hi = 1.4 * iwr, pos = Math.max(0, Math.min(1, (cwr - lo) / (hi - lo))) * 100;
+  return `<div style="display:grid;gap:6px"><h3>Entnahmeanteil nach dem Check: ${fmtPct2(cwr)}</h3>
+    <div class="gauge" aria-hidden="true"><i style="left:${pos}%"></i></div>
+    <div class="gauge-l"><span>Rate steigt unter ${fmtPct2(0.8 * iwr)}</span><span>Startwert ${fmtPct2(iwr)}</span><span>Rate sinkt über ${fmtPct2(1.2 * iwr)}</span></div></div>`;
+}
+
+/* ---------- Status & Verlauf ---------- */
+function renderStatus() {
+  const sec = $("status-sec");
+  if (!state || !state.plan) { sec.hidden = true; return; }
+  sec.hidden = false; $("demo-flag").hidden = !demo;
+  const plan = state.plan, prev = lastState(state);
+  const due = addYears(prev.date, 1), days = Math.round((new Date(due + "T12:00:00") - new Date(today() + "T12:00:00")) / DAY);
+  $("s-next").textContent = new Date(due + "T12:00:00").toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric" });
+  $("s-next-s").innerHTML = days > 30 ? `in ${days} Tagen` : days >= 0 ? `<span class="pill warn">bald fällig · in ${days} Tagen</span>` : `<span class="pill bad">überfällig seit ${-days} Tagen</span>`;
+  const gross = planGross(state);
+  $("s-rate").textContent = eur10(prev.net);
+  $("s-rate-s").textContent = `Entnahmeplan: ${eur10(gross)} brutto`;
+  const months = Math.max(0, Math.min(12 * plan.y1, Math.floor(yearsBetween(prev.date, today()) * 12)));
+  $("s-t1").textContent = eurR(Math.max(0, prev.t1 - months * gross));
+  $("s-t1-s").textContent = `nach ${months} ${months === 1 ? "Entnahme" : "Entnahmen"} seit ${fmtDate(prev.date)}`;
+  $("s-tot").textContent = eurR(prev.total);
+  const real = prev.total / prev.cpi;
+  $("s-tot-s").textContent = state.checks.length ? `in heutiger Kaufkraft ${eurR(real)} · Start ${eurR(plan.cap)}` : "Startwert";
+}
+function renderHistory() {
+  const sec = $("hist-sec");
+  if (!state || !state.plan) { sec.hidden = true; return; }
+  sec.hidden = false;
+  const plan = state.plan, a = startAllocation(plan);
+  const rows = [{ date: plan.date, t1: a.t1, t2: a.t2, t3: a.t3, net: plan.net, cpi: 1, kind: "Start", px: null, dd: null }]
+    .concat(state.checks.map(c => ({ date: c.date, t1: c.after.t1, t2: c.after.t2, t3: c.after.t3, net: c.newNet, cpi: c.cpi, kind: c.emergency ? "Notfall" : c.good ? "Normal" : "Krise", px: c.inputs.px, dd: c.drawdown, ret: c.portRet })));
+  let t = `<thead><tr><th>Datum</th><th>Lage</th><th>Depot-Rendite</th><th>Topf 1</th><th>Topf 2</th><th>Topf 3</th><th>Depot gesamt</th><th>Rate netto</th></tr></thead><tbody>`;
+  rows.forEach(r => {
+    t += `<tr><td>${new Date(r.date + "T12:00:00").toLocaleDateString("de-DE")}</td><td>${r.kind}</td><td>${r.ret == null ? "–" : (r.ret < 0 ? "−" : "+") + fmtPct(r.ret)}</td><td>${eurR(r.t1)}</td><td>${eurR(r.t2)}</td><td>${eurR(r.t3)}</td><td>${eurR(r.t1 + r.t2 + r.t3)}</td><td>${eur10(r.net)}</td></tr>`;
+  });
+  $("hist-table").innerHTML = t + "</tbody>";
+  $("undo-btn").hidden = !state.checks.length || demo; $("undo-confirm").hidden = true;
+  $("export-btn").disabled = demo;
+  drawHist(rows, plan);
+}
+function drawHist(rows, plan) {
+  const el = $("hist-chart");
+  if (rows.length < 2) { el.innerHTML = `<p class="muted small">Nach dem ersten Jahres-Check erscheint hier der Verlauf.</p>`; return; }
+  const W = Math.max(320, Math.min(860, el.clientWidth || 700)), H = 220, L = 58, R = 14, T = 12, B = 28;
+  const x = rows.map(r => new Date(r.date).getTime()), x0 = x[0], x1 = x[x.length - 1];
+  const dep = rows.map(r => (r.t1 + r.t2 + r.t3) / r.cpi), rt = rows.map(r => r.t1 + r.t2 + r.t3);
+  let ymax = Math.max(...dep, ...rt, plan.cap) * 1.08;
+  const step = Math.pow(10, Math.floor(Math.log10(ymax / 4))) * ([1, 2, 2.5, 5, 10].find(f => f * Math.pow(10, Math.floor(Math.log10(ymax / 4))) >= ymax / 4) || 10);
+  ymax = Math.ceil(ymax / step) * step;
+  const xs = v => L + (v - x0) / (x1 - x0 || 1) * (W - L - R), ys = v => T + (1 - v / ymax) * (H - T - B);
+  const path = arr => arr.map((v, k) => (k ? "L" : "M") + xs(x[k]).toFixed(1) + " " + ys(v).toFixed(1)).join(" ");
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Verlauf von Depot und Rate">`;
+  for (let v = 0; v <= ymax + 1; v += step) s += `<line class="gridline" x1="${L}" x2="${W - R}" y1="${ys(v)}" y2="${ys(v)}"/><text class="axis" x="${L - 8}" y="${ys(v) + 4}" text-anchor="end">${v >= 1e6 ? nf1.format(v / 1e6) + " Mio." : nf0.format(v / 1000) + " T€"}</text>`;
+  rows.forEach((r, k) => { if (k === 0 || k === rows.length - 1 || rows.length <= 8) s += `<text class="axis" x="${xs(x[k])}" y="${H - 8}" text-anchor="middle">${new Date(r.date).getFullYear()}</text>`; });
+  s += `<line class="ref" x1="${L}" x2="${W - R}" y1="${ys(plan.cap)}" y2="${ys(plan.cap)}"/>`;
+  s += `<path class="l1" d="${path(dep)}"/><path class="l2" d="${path(rt)}"/></svg>`;
+  el.innerHTML = s;
+}
+
+function render() {
+  const has = !!(state && state.plan);
+  $("check-sec").hidden = !has;
+  $("plan-save").textContent = has ? "Plan aktualisieren" : "Plan speichern";
+  $("plan-save").disabled = demo;
+  $("plan-intro").textContent = has
+    ? (state.checks.length ? "Der Plan ist gespeichert. Änderungen hier wirken ab dem nächsten Jahres-Check; Startdatum und Startkapital bleiben die Grundlage der Leitplanken." : "Der Plan ist gespeichert. Setze jetzt die Startaufträge um. Den ersten Jahres-Check machst du in einem Jahr.")
+    : "Die Felder sind mit Beispielwerten vorausgefüllt. Trag deine eigenen Zahlen ein und speichere den Plan. Danach bekommst du die Kaufaufträge für den Start.";
+  if (has) renderStart(state.plan); else $("start-orders").hidden = true;
+  renderStatus(); renderHistory(); renderRec();
+}
+
+/* ---------- Beispiel ---------- */
+function demoDoc() {
+  const plan = { date: "2023-01-15", cap: 700000, net: 1200, age0: 50, age1: 90, y1: 1, y2: 5, corp: 0.4, inf: 0.02, indexed: true, mode: "dyn", swing: 0.1, dfloor: 0.75, dcap: null, skipLoss: false, guard: false, price: 100 };
+  let d = { plan, checks: [] };
+  const steps = [
+    { date: "2024-01-15", inf: 0.059, t1: 300, t2: 93800, t3: 640600, px: 108, hi: 109 },
+    { date: "2025-01-15", inf: 0.022, t1: 400, t2: 79500, t3: 700300, px: 117, hi: 118 },
+    { date: "2026-01-15", inf: 0.021, t1: 200, t2: 98700, t3: 610400, px: 101, hi: 121 },
+  ];
+  steps.forEach(st => {
+    const prev = lastState(d);
+    const r = computeCheck(d, { ...st, withdrawn: planGross(d) * 12, gain: NaN, bz: 0.032 });
+    d.checks.push(r);
+  });
+  return d;
+}
+
+/* ---------- Ereignisse ---------- */
+$("plan-save").addEventListener("click", async () => {
+  const p = readPlan(), errs = planErrors(p);
+  if (errs.length) { $("plan-msg").style.color = "var(--bad)"; $("plan-msg").textContent = errs.join(" "); return; }
+  if (state && state.plan && state.plan.tax && state.checks && state.checks.length === 0 && state.plan.cap === p.cap && state.plan.net === p.net) p.tax = state.plan.tax;
+  else if (state && state.plan && state.plan.tax && state.checks && state.checks.length) p.tax = state.plan.tax;
+  const next = { plan: p, checks: state && state.checks ? state.checks : [], v: 1 };
+  $("plan-msg").style.color = ""; $("plan-msg").textContent = "Speichert …";
+  const ok = await persist(next);
+  $("plan-msg").textContent = ok ? "Gespeichert" : "";
+  if (ok) prefillCheck();
+});
+document.querySelectorAll("#check-sec input").forEach(i => i.addEventListener("input", renderRec));
+$("check-save").addEventListener("click", async () => {
+  const c = readCheck(); if (checkErrors(c, state).length) return;
+  const r = computeCheck(state, c);
+  const next = { plan: state.plan, checks: state.checks.concat([r]), v: 1 };
+  $("check-msg").textContent = "Speichert …";
+  const ok = await persist(next);
+  $("check-msg").textContent = ok ? `Gespeichert. Nächster Check am ${fmtDate(addYears(c.date, 1))}.` : "";
+  if (ok) prefillCheck();
+});
+$("undo-btn").addEventListener("click", () => { $("undo-confirm").hidden = false; });
+$("undo-confirm").addEventListener("click", async () => {
+  const next = { plan: state.plan, checks: state.checks.slice(0, -1), v: 1 };
+  const ok = await persist(next); $("hist-msg").textContent = ok ? "Letzter Check gelöscht." : ""; if (ok) prefillCheck();
+});
+$("export-btn").addEventListener("click", async () => {
+  if (!state) return;
+  const data = JSON.stringify(state, null, 2);
+  const dl = window.claude ? await window.claude.use("downloads").catch(() => null) : null;
+  if (!dl) {
+    if (window.claude) { $("hist-msg").textContent = "Herunterladen ist in dieser Ansicht nicht möglich."; return; }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([data], { type: "application/json" })); a.download = `drei-toepfe-logbuch-${today()}.json`;
+    document.body.appendChild(a); a.click(); a.remove(); $("hist-msg").textContent = "Sicherung gespeichert."; return;
+  }
+  try { await dl.save({ filename: `drei-toepfe-logbuch-${today()}.json`, data }); $("hist-msg").textContent = "Sicherung gespeichert."; }
+  catch (e) { $("hist-msg").textContent = e && e.code === "declined" ? "" : "Herunterladen hat nicht geklappt."; }
+});
+$("import-file").addEventListener("change", async ev => {
+  const f = ev.target.files && ev.target.files[0]; if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!d || !d.plan || !Array.isArray(d.checks) || planErrors(d.plan).length) throw new Error("format");
+    const ok = await persist({ plan: d.plan, checks: d.checks, v: 1 });
+    $("hist-msg").textContent = ok ? "Sicherung geladen." : "";
+    if (ok) { fillPlanForm(d.plan); prefillCheck(); }
+  } catch (e) { $("hist-msg").textContent = "Die Datei ist keine gültige Logbuch-Sicherung."; }
+  ev.target.value = "";
+});
+$("demo-btn").addEventListener("click", () => {
+  if (!demo) { demo = true; window._real = state; state = demoDoc(); fillPlanForm(state.plan); prefillCheck(); $("demo-btn").textContent = "Beispiel beenden"; }
+  else { demo = false; state = window._real || null; if (state && state.plan) { fillPlanForm(state.plan); prefillCheck(); } else resetPlanForm(); $("demo-btn").textContent = "Beispiel ansehen"; }
+  render();
+});
+function resetPlanForm() { $("p-date").value = today(); syncMode(); }
+["p-mode-fix", "p-mode-dyn"].forEach(id => $(id).addEventListener("change", syncMode));
+["p-net", "p-floor"].forEach(id => $(id).addEventListener("input", syncMode));
+let rz = 0; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => state && renderHistory(), 150); });
+
+/* ---------- Start ---------- */
+resetPlanForm();
+render();
+(async () => {
+  const C = window.claude;
+  const [dbNs, user] = C ? await Promise.all([C.use("db").catch(() => null), C.use("user").catch(() => null)]) : [null, null];
+  const uid = user ? await user.id() : null;
+  if (dbNs && uid) {
+    db = dbNs; mode = "db";
+    docRef = db.doc("data/users/" + uid + "/logbuch");
+    unsub = docRef.onSnapshot(snap => {
+      if (demo) { window._real = snap.exists ? snap.data() : null; return; }
+      const d = snap.exists ? snap.data() : null;
+      const first = state === null;
+      state = d ? JSON.parse(JSON.stringify(d)) : null;
+      if (state && state.plan && (first || !document.activeElement || !document.activeElement.closest("#plan-sec"))) fillPlanForm(state.plan);
+      if (first || !document.activeElement || !document.activeElement.closest("#check-sec")) prefillCheck();
+      render();
+    }, err => { showBanner("warn", "Die Verbindung zum Speicher ist abgebrochen. Lade die Seite neu, bevor du etwas einträgst."); });
+  } else {
+    mode = "local";
+    state = lsGet();
+    if (state && state.plan) { fillPlanForm(state.plan); prefillCheck(); }
+    showBanner("warn", "Deine Einträge werden nur in diesem Browser gespeichert. Lade nach jedem Check eine Sicherung herunter, damit nichts verloren geht.");
+    render();
+  }
+})();
+</script>
+<script>if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) navigator.serviceWorker.register("sw.js");</script>
+</body>
+</html>
